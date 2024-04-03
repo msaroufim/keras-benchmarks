@@ -7,7 +7,9 @@ from transformers import TrainingArguments
 
 import benchmark
 from benchmark import torch_utils
-
+import torch
+torch.set_float32_matmul_precision('high')
+# torch.set_default_device("cuda")
 
 def run(batch_size=benchmark.MISTRAL_FIT_BATCH_SIZE):
     preset = "mistralai/Mistral-7B-v0.1"
@@ -27,8 +29,8 @@ def run(batch_size=benchmark.MISTRAL_FIT_BATCH_SIZE):
         per_device_train_batch_size=batch_size,
         num_train_epochs=1.0,
         # Disable torch compile. Otherwise, it would become extremely slow.
-        # torch_compile=True,
-        # torch_compile_mode=torch_utils.COMPILE_MODE,
+        torch_compile=True,
+        torch_compile_mode=torch_utils.COMPILE_MODE,
         max_steps=benchmark.NUM_STEPS + 1,
     )
 

@@ -5,6 +5,10 @@ from transformers import AutoTokenizer
 from transformers import Trainer
 from transformers import TrainingArguments
 
+import torch
+torch.set_float32_matmul_precision('high')
+torch.set_default_device("cuda")
+
 import benchmark
 from benchmark import torch_utils
 
@@ -16,9 +20,7 @@ def run(batch_size=benchmark.GEMMA_FIT_BATCH_SIZE):
     dataset = torch_utils.get_train_dataset_for_text_gen(
         tokenizer, batch_size, seq_len=benchmark.GEMMA_SEQ_LENGTH
     )
-    model = AutoModelForCausalLM.from_pretrained(
-        preset, torch_dtype=torch_utils.get_torch_dtype(benchmark.FLOAT_A100)
-    ).cuda()
+    model = AutoModelForCausalLM.from_pretrained(preset)
     config = LoraConfig(r=4)
     model = get_peft_model(model, config)
 
@@ -27,8 +29,8 @@ def run(batch_size=benchmark.GEMMA_FIT_BATCH_SIZE):
         per_device_train_batch_size=batch_size,
         num_train_epochs=1.0,
         # Disable torch compile. Otherwise, it would become extremely slow.
-        # torch_compile=True,
-        # torch_compile_mode=torch_utils.COMPILE_MODE,
+        torch_compile=True,
+        torch_compile_mode=torch_utils.COMPILE_MODE,
         max_steps=benchmark.NUM_STEPS + 1,
     )
 

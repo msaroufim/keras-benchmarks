@@ -2,6 +2,8 @@ import time
 
 import torch
 from diffusers import StableDiffusionPipeline
+torch.set_float32_matmul_precision('high')
+# torch.set_default_device("cuda")
 
 import benchmark
 from benchmark import torch_utils
@@ -27,10 +29,11 @@ def inference(model, batch_size):
     start_time = time.time()
     model(prompts, height=512, width=512, num_inference_steps=1)
     end_time = time.time()
+
+    # TODO: Why do this? This is confusing
     total_time -= end_time - start_time
 
     return total_time / benchmark.NUM_STEPS * 1000
-
 
 def run(batch_size=benchmark.SD_BATCH_SIZE):
     model = StableDiffusionPipeline.from_pretrained(

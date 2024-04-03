@@ -2,6 +2,8 @@ import time
 
 import torch
 from diffusers import StableDiffusionPipeline
+torch.set_float32_matmul_precision('high')
+# torch.set_default_device("cuda")
 
 import benchmark
 from benchmark import torch_utils
@@ -21,12 +23,14 @@ def train(model, input_image, y_true):
 
     compiled_train_fn(model, input_image, y_true)
 
-    start_time = time.time()
+    start_time = torch.cuda.Event(enable_timing=True)
+    end_time = torch.cuda.Event(enable_timing=True)
+    start_time.record()
     for _ in range(benchmark.NUM_STEPS):
         compiled_train_fn(model, input_image, y_true)
-    end_time = time.time()
-
-    return (end_time - start_time) / benchmark.NUM_STEPS * 1000
+    end_time.record()
+    torch.cuda.synchronize()
+    return (start_time.elapsed_time(end_time)) / benchmark.NUM_STEPS
 
 
 def run(batch_size=benchmark.SD_FIT_BATCH_SIZE):

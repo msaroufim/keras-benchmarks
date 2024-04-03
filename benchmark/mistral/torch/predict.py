@@ -1,10 +1,13 @@
 import torch
 from transformers import AutoModelForCausalLM
 from transformers import AutoTokenizer
+from transformers import StaticCache
 
 import benchmark
 from benchmark import torch_utils
-
+import torch
+torch.set_float32_matmul_precision('high')
+torch.set_default_device("cuda")
 
 def run(batch_size=benchmark.MISTRAL_BATCH_SIZE):
     preset = "mistralai/Mistral-7B-v0.1"

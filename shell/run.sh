@@ -41,6 +41,7 @@ for venv_name in "${venvs[@]}"; do
         export KERAS_HOME=configs/${venv_name#keras-}
     fi
 
+    # Batch size is implicit it seems
     for model_name in "${models[@]}"; do
         printf "$model_name:\n" | tee -a $output_file
         printf "fit:\n" | tee -a $output_file
