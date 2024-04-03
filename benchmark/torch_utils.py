@@ -44,7 +44,6 @@ def generate(
 ):
     inputs = benchmark.get_prompts(batch_size, benchmark.NUM_WORDS)
     num_input_tokens = benchmark.NUM_WORDS
-    breakpoint()
     def generate_once():
         torch.compiler.cudagraph_mark_step_begin()
         tokenized_inputs = tokenizer(
