@@ -5,3 +5,4 @@ benchmark/__pycache__/
 benchmark/sam/torch/1
 flash_4_configs.p
 *.json
+benchmark/gemma/torch/predict2.py
