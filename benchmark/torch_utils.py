@@ -47,6 +47,7 @@ def generate(
     num_input_tokens = benchmark.NUM_WORDS
 
     def generate_once():
+        torch.compiler.cudagraph_mark_step_begin
         tokenized_inputs = tokenizer(
             inputs,
             padding=True,
@@ -55,7 +56,9 @@ def generate(
         outputs = model.generate(
             **tokenized_inputs,
             max_new_tokens=max_length - num_input_tokens,
-            pad_token_id=tokenizer.eos_token_id
+            pad_token_id=tokenizer.eos_token_id,
+            cache_implementation="static",
+            do_sample=False,
         )
         tokenizer.decode(outputs[0])
 
