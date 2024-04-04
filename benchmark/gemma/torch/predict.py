@@ -6,8 +6,14 @@ torch.set_default_device("cuda")
 torch.set_float32_matmul_precision('high')
 import benchmark
 from benchmark import torch_utils
+import torch._inductor.config
 
-# Workaround for cuda graph bug and model state
+# helps autotuning
+# torch._inductor.config.coordinate_descent_tuning = True
+# speeds up warm compile times, no impact on benchmark
+# torch._inductor.config.fx_graph_cache = True
+
+import torch
 def no_op(*args, **kwargs):
      pass
 

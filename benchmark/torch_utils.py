@@ -52,19 +52,13 @@ def generate(
             return_tensors="pt",
         ).to("cuda")
 
-        try:
-            outputs = model.generate(
-                **tokenized_inputs,
-                max_new_tokens=max_length - num_input_tokens,
-                pad_token_id=tokenizer.eos_token_id,
-                cache_implementation="static",
-            )
-        except:
-                outputs = model.generate(
-                **tokenized_inputs,
-                max_new_tokens=max_length - num_input_tokens,
-                pad_token_id=tokenizer.eos_token_id,
-            )
+        outputs = model.generate(
+            **tokenized_inputs,
+            max_new_tokens=max_length - num_input_tokens,
+            pad_token_id=tokenizer.eos_token_id,
+            cache_implementation="static",
+        )
+
 
         tokenizer.decode(outputs[0])
 

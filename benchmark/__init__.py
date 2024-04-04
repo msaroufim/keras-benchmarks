@@ -45,6 +45,7 @@ def benchmark(run):
         if len(sys.argv) == 3:
             batch_size = int(sys.argv[2])
             per_step = run(batch_size=batch_size)
+            print(f"{per_step} ms/step\n")
             content = f"{1000*batch_size/per_step} examples/s\n"
         else:
             per_step = run()
