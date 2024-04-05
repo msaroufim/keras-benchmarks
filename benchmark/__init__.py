@@ -4,7 +4,7 @@ import sys
 
 import requests
 
-NUM_STEPS = 100
+NUM_STEPS = 10
 NUM_WORDS = 5
 FLOAT_A100 = "bfloat16"
 

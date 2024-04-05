@@ -24,9 +24,9 @@ def run(batch_size=benchmark.GEMMA_BATCH_SIZE):
     model = AutoModelForCausalLM.from_pretrained(
         preset, torch_dtype=torch_utils.get_torch_dtype(benchmark.FLOAT_A100)
     ).cuda()
-    # model._setup_cache(StaticCache, batch_size, max_cache_len=benchmark.GEMMA_MAX_LENGTH)
 
-    model.forward = torch.compile(model.forward, mode="reduce-overhead")
+    model = torch.compile(model, mode=torch_utils.COMPILE_MODE, fullgraph=True)
+
     tokenizer = AutoTokenizer.from_pretrained(preset)
     tokenizer.pad_token = tokenizer.eos_token
 

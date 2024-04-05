@@ -36,7 +36,6 @@ class TimingCallback(TrainerCallback):
         if state.global_step == benchmark.NUM_STEPS:
             self.end_time = time.time()
 
-
 def generate(
     model,
     tokenizer,
@@ -45,21 +44,22 @@ def generate(
 ):
     inputs = benchmark.get_prompts(batch_size, benchmark.NUM_WORDS)
     num_input_tokens = benchmark.NUM_WORDS
-
     def generate_once():
-        torch.compiler.cudagraph_mark_step_begin
+        torch.compiler.cudagraph_mark_step_begin()
         tokenized_inputs = tokenizer(
             inputs,
             padding=True,
             return_tensors="pt",
         ).to("cuda")
+
         outputs = model.generate(
             **tokenized_inputs,
             max_new_tokens=max_length - num_input_tokens,
             pad_token_id=tokenizer.eos_token_id,
             cache_implementation="static",
-            do_sample=False,
         )
+
+
         tokenizer.decode(outputs[0])
 
     # Generate once to build the model.

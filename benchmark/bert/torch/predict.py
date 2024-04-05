@@ -1,49 +1,64 @@
-import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import time
+
+from transformers import AutoModelForSequenceClassification
+from transformers import AutoTokenizer
+from transformers import Trainer
+from transformers import TrainingArguments
+
 import benchmark
 from benchmark import torch_utils
-
+import torch
 torch.set_float32_matmul_precision('high')
+MODE="reduce-overhead"
+## Additional inductor flags
+import torch._inductor.config
+
+# helps autotuning
+# torch._inductor.config.coordinate_descent_tuning = True
+
+# speeds up warm compile times, no impact on benchmark
+torch._inductor.config.fx_graph_cache = True
+
+def run_inference(model, inputs):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(**inputs)
+    return outputs
 
 def run(batch_size=benchmark.BERT_BATCH_SIZE):
-    # Load tokenizer and model
     tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-    model = AutoModelForSequenceClassification.from_pretrained(
-        "bert-base-cased",
-        num_labels=2,
-    ).to('cuda' if torch.cuda.is_available() else 'cpu')
-
-    model.eval()  # Set model to evaluation mode
-
-    # Assuming torch_utils.get_train_dataset_for_text_classification returns a PyTorch Dataset of texts
     dataset = torch_utils.get_train_dataset_for_text_classification(
         tokenizer,
         batch_size=batch_size,
         seq_len=benchmark.BERT_SEQ_LENGTH,
     )
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "bert-base-cased",
+        num_labels=2,
+    )
 
-    print(dataset[0].keys)
+    # Move model to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model = torch.compile(model, mode=MODE)
 
-    # Assuming dataset is a PyTorch Dataset with a __getitem__ method that returns a single text string
-    texts = dataset[0]  # Extract texts assuming dataset[i] returns (text, label)
-    inputs = tokenizer(texts, padding=True, truncation=True, max_length=benchmark.BERT_SEQ_LENGTH, return_tensors="pt")
-    inputs = {k: v.to('cuda' if torch.cuda.is_available() else 'cpu') for k, v in inputs.items()}
+    # Select a batch from the dataset
+    batch = dataset.select(list(range(batch_size)))
+    inputs = tokenizer(batch['text'], return_tensors='pt', padding=True, truncation=True, max_length=benchmark.BERT_SEQ_LENGTH)
+    inputs = {key: val.to(device) for key, val in inputs.items()}
 
-    # Warm-up inference
-    with torch.no_grad():
-        model(**{key: val[:batch_size] for key, val in inputs.items()})
+    # Warmup
+    run_inference(model, inputs)
 
-    # Measure inference time
-    start_time = time.time()
-    with torch.no_grad():
-        for step in range(benchmark.NUM_STEPS):
-            model(**inputs)
-    end_time = time.time()
-
-    total_time = end_time - start_time
-    inferencing_per_step = total_time / benchmark.NUM_STEPS * 1000
-
-    return inferencing_per_step
+    # Run inference
+    start_time = torch.cuda.Event(enable_timing=True)
+    end_time = torch.cuda.Event(enable_timing=True)
+    start_time.record()
+    for _ in range(benchmark.NUM_STEPS + 1):
+        run_inference(model, inputs)
+    end_time.record()
+    torch.cuda.synchronize()
+    return (start_time.elapsed_time(end_time)) / benchmark.NUM_STEPS
 
 if __name__ == "__main__":
     benchmark.benchmark(run)
